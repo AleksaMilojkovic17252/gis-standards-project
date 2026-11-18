@@ -1,0 +1,40 @@
+.popup {
+  min-width: 300px;
+}
+
+.title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.8rem;
+}
+
+.table td {
+  padding: 2px 4px;
+  vertical-align: middle;
+}
+
+.value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.simulated {
+  font-size: 0.65rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 3px;
+  margin-left: 4px;
+}

@@ -1,0 +1,15 @@
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+CREATE SCHEMA IF NOT EXISTS rail;
+CREATE SCHEMA IF NOT EXISTS mdb;
+CREATE SCHEMA IF NOT EXISTS postgis_points;
+CREATE SCHEMA IF NOT EXISTS postgis_lsm;
+CREATE SCHEMA IF NOT EXISTS obs;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM spatial_ref_sys WHERE srid = 3416) THEN
+        RAISE EXCEPTION 'EPSG:3416 missing from spatial_ref_sys';
+    END IF;
+END
+$$;

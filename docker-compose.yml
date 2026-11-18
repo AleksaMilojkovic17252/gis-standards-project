@@ -1,0 +1,217 @@
+name: gis-standards
+
+services:
+  postgis-frost:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: sensorthings
+      POSTGRES_USER: ${FROST_DB_USER:-sensorthings}
+      POSTGRES_PASSWORD: ${FROST_DB_PASSWORD:?set FROST_DB_PASSWORD in .env}
+    volumes:
+      - frost-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  frost:
+    image: fraunhoferiosb/frost-server:2.8.2
+    depends_on:
+      postgis-frost:
+        condition: service_healthy
+    environment:
+      serviceRootUrl: http://localhost:${PUBLIC_PORT:-8090}/sta/FROST-Server
+      http_cors_enable: "true"
+      http_cors_allowed_origins: "*"
+      # pygeoapi EDR does not follow nextLink, one page must fit a full 10-day series
+      defaultTop: "2000"
+      maxTop: "10000"
+      plugins_dataArray_enable: "true"
+      plugins_multiDatastream_enable: "false"
+      persistence_db_driver: org.postgresql.Driver
+      persistence_db_url: jdbc:postgresql://postgis-frost:5432/sensorthings
+      persistence_db_username: ${FROST_DB_USER:-sensorthings}
+      persistence_db_password: ${FROST_DB_PASSWORD}
+      persistence_autoUpdateDatabase: "true"
+      mqtt_Enabled: "true"
+      mqtt_WebsocketPort: "9876"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  mobilitydb:
+    image: mobilitydb/mobilitydb:17-3.5-1.3
+    shm_size: 2g
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    environment:
+      POSTGRES_DB: ${MOBILITYDB_DB:-trains}
+      POSTGRES_USER: ${MOBILITYDB_USER:-gis}
+      POSTGRES_PASSWORD: ${MOBILITYDB_PASSWORD:?set MOBILITYDB_PASSWORD in .env}
+    volumes:
+      - mobilitydb-data:/var/lib/postgresql/data
+      - ./services/mobilitydb/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./services/mobilitydb/initdb/20_schemas.sql:/docker-entrypoint-initdb.d/20_schemas.sql:ro
+    ports:
+      - "${MOBILITYDB_HOST_PORT:-25432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  pygeoapi:
+    image: geopython/pygeoapi:0.24.0
+    depends_on:
+      mobilitydb:
+        condition: service_healthy
+      frost:
+        condition: service_healthy
+    environment:
+      PYGEOAPI_SERVER_URL: http://localhost:${PUBLIC_PORT:-8090}/ogc
+      MOBILITYDB_USER: ${MOBILITYDB_USER:-gis}
+      MOBILITYDB_PASSWORD: ${MOBILITYDB_PASSWORD}
+      MOBILITYDB_DB: ${MOBILITYDB_DB:-trains}
+    volumes:
+      - ./services/pygeoapi/config.yml:/pygeoapi/local.config.yml:ro
+      - ./data/processed:/data:ro
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:80/conformance?f=json', timeout=4)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  mf-api:
+    build: ./services/mf-api
+    depends_on:
+      mobilitydb:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${MOBILITYDB_USER:-gis}:${MOBILITYDB_PASSWORD}@mobilitydb:5432/${MOBILITYDB_DB:-trains}
+      PUBLIC_BASE_URL: http://localhost:${PUBLIC_PORT:-8090}/mf
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  web:
+    image: node:22.23.5-alpine
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund && chown $$(stat -c '%u:%g' package.json) package-lock.json && npm run dev -- --host 0.0.0.0 --port 5173"]
+    environment:
+      PUBLIC_PORT: ${PUBLIC_PORT:-8090}
+    volumes:
+      - ./web:/app
+      - web-node-modules:/app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5173/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+    restart: unless-stopped
+
+  osm2pgsql:
+    image: iboates/osm2pgsql:2.3.1
+    profiles: ["tools"]
+    depends_on:
+      mobilitydb:
+        condition: service_healthy
+    environment:
+      PGHOST: mobilitydb
+      PGPORT: "5432"
+      PGUSER: ${MOBILITYDB_USER:-gis}
+      PGPASSWORD: ${MOBILITYDB_PASSWORD}
+      PGDATABASE: ${MOBILITYDB_DB:-trains}
+    volumes:
+      - ./data/raw/osm:/osm:ro
+      - ./train-simulator/osm:/lua:ro
+    command:
+      - osm2pgsql
+      - --create
+      - --output=flex
+      - --style=/lua/rail.lua
+      - --schema=rail
+      - /osm/${OSM_FILE:-austria-261114.osm.pbf}
+
+  train-simulator:
+    build: ./train-simulator
+    profiles: ["tools"]
+    depends_on:
+      mobilitydb:
+        condition: service_healthy
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgresql://${MOBILITYDB_USER:-gis}:${MOBILITYDB_PASSWORD}@mobilitydb:5432/${MOBILITYDB_DB:-trains}
+      FROST_URL: http://frost:8080/FROST-Server/v1.1
+    volumes:
+      - ./train-simulator:/app
+      - ./data:/data
+
+  sta-loader:
+    image: python:3.12.16-slim
+    profiles: ["tools"]
+    depends_on:
+      frost:
+        condition: service_healthy
+    working_dir: /app
+    environment:
+      FROST_URL: http://frost:8080/FROST-Server/v1.1
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./sta-loader:/app:ro
+      - ./data:/data:ro
+    command: ["python", "load_stations.py"]
+
+  benchmark:
+    build: ./benchmark
+    profiles: ["tools"]
+    depends_on:
+      mobilitydb:
+        condition: service_healthy
+    working_dir: /benchmark
+    environment:
+      DATABASE_URL: postgresql://${MOBILITYDB_USER:-gis}:${MOBILITYDB_PASSWORD}@mobilitydb:5432/${MOBILITYDB_DB:-trains}
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./benchmark:/benchmark
+      - ./paper/figures:/figures
+
+  nginx:
+    image: nginx:1.30.6-alpine
+    depends_on:
+      frost:
+        condition: service_healthy
+      pygeoapi:
+        condition: service_healthy
+      mf-api:
+        condition: service_healthy
+      web:
+        condition: service_started
+    volumes:
+      - ./services/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${PUBLIC_PORT:-8090}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  frost-db:
+  mobilitydb-data:
+  web-node-modules:

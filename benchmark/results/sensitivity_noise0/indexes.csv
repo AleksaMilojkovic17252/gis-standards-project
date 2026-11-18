@@ -1,0 +1,4 @@
+model,config,build_s,table_bytes,index_bytes
+postgis_points,all,2.023,109166592,82452480
+mdb,gist_trip,0.001,19415040,40960
+postgis_lsm,all,0.001,13795328,32768

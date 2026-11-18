@@ -1,0 +1,12 @@
+model,config,build_s,table_bytes,index_bytes
+postgis_points,none,0.0,106790912,0
+postgis_points,gist_geom,1.501,106790912,46407680
+postgis_points,brin_t,0.054,106790912,49152
+postgis_points,btree_trip_t,0.678,106790912,35373056
+postgis_points,all,2.159,106790912,81829888
+mdb,none,0.0,22044672,16384
+mdb,gist_trip,0.001,22044672,40960
+postgis_lsm,none,0.0,16580608,16384
+postgis_lsm,gist_geom,0.001,16580608,24576
+postgis_lsm,gist_period,0.001,16580608,24576
+postgis_lsm,all,0.002,16580608,32768

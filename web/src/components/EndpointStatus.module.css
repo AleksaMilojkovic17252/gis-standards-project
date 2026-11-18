@@ -1,0 +1,25 @@
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.up {
+  background: var(--up);
+}
+
+.down {
+  background: var(--down);
+}
+
+.checking {
+  background: var(--checking);
+}

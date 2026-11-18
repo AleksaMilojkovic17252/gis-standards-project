@@ -1,0 +1,7 @@
+model,config,query,median_ms,min_ms,max_ms,rows,answer,timed_out
+postgis_points,all,q1,1.717,1.704,3.106,16,16,False
+postgis_points,all,q5,1631.645,1611.702,1649.428,17,528077.4,False
+mdb,gist_trip,q1,44.927,44.567,46.305,16,16,False
+mdb,gist_trip,q5,1475.622,1461.908,1531.116,17,526601.3,False
+postgis_lsm,all,q1,8.309,6.565,9.056,16,16,False
+postgis_lsm,all,q5,2110.823,1984.439,2118.996,17,528077.4,False

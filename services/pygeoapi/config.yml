@@ -1,0 +1,219 @@
+server:
+    bind:
+        host: 0.0.0.0
+        port: 80
+    url: ${PYGEOAPI_SERVER_URL}
+    mimetype: application/json; charset=UTF-8
+    encoding: utf-8
+    gzip: false
+    language: en-US
+    cors: true
+    pretty_print: true
+    admin: false
+    limits:
+        default_items: 100
+        max_items: 10000
+    map:
+        url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+
+logging:
+    level: ERROR
+
+metadata:
+    identification:
+        title: Trains and weather in Austria (OGC API research sandbox)
+        description: >-
+            OGC API - Features and EDR for weather stations (GeoSphere Austria,
+            CC BY 4.0), simulated soil data, INCA gridded weather and
+            OpenStreetMap rail lines (ODbL). Simulated data is labelled as such.
+        keywords:
+            - OGC API
+            - SensorThings
+            - EDR
+            - railway
+            - weather
+        keywords_type: theme
+        terms_of_service: https://creativecommons.org/licenses/by/4.0/
+        url: ${PYGEOAPI_SERVER_URL}
+    license:
+        name: Data CC BY 4.0 (GeoSphere Austria) and ODbL (OpenStreetMap)
+        url: https://creativecommons.org/licenses/by/4.0/
+    provider:
+        name: OGC API research sandbox
+        url: ${PYGEOAPI_SERVER_URL}
+    contact:
+        name: Research sandbox
+        position: Maintainer
+        address: n/a
+        city: n/a
+        stateorprovince: n/a
+        postalcode: n/a
+        country: Austria
+        phone: n/a
+        fax: n/a
+        email: n/a
+        url: ${PYGEOAPI_SERVER_URL}
+        hours: n/a
+        instructions: n/a
+        role: pointOfContact
+
+resources:
+    stations:
+        type: collection
+        title: Weather stations
+        description: >-
+            17 GeoSphere Austria TAWES stations near the rail lines, served from
+            the SensorThings API (FROST). Each station has 9 datastreams: 6 measured
+            (GeoSphere, CC BY 4.0), soil temperature (measured at 5 stations,
+            simulated elsewhere) and simulated soil moisture and soil state.
+        keywords: [weather, stations, SensorThings, GeoSphere]
+        links:
+            - type: text/html
+              rel: canonical
+              title: GeoSphere Austria klima-v2-10min
+              href: https://data.hub.geosphere.at/dataset/klima-v2-10min
+              hreflang: en-US
+        extents:
+            spatial:
+                bbox: [9.4, 46.3, 17.2, 49.1]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+            temporal:
+                begin: 2026-11-04T00:00:00Z
+                end: 2026-11-13T23:50:00Z
+        providers:
+            - type: feature
+              name: SensorThings
+              data: http://frost:8080/FROST-Server/v1.1/
+              entity: Things
+              title_field: name
+
+    rail-lines:
+        type: collection
+        title: Rail lines
+        description: >-
+            Four Austrian rail lines (Westbahn, Südbahn, Salzburg - Innsbruck,
+            Arlbergbahn) built from OpenStreetMap railway=rail ways (ODbL) as
+            shortest paths between their stops.
+        keywords: [railway, OpenStreetMap]
+        links:
+            - type: text/html
+              rel: license
+              title: OpenStreetMap (ODbL)
+              href: https://www.openstreetmap.org/copyright
+              hreflang: en-US
+        extents:
+            spatial:
+                bbox: [9.4, 46.3, 17.2, 49.1]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+        providers:
+            - type: feature
+              name: PostgreSQL
+              data:
+                  host: mobilitydb
+                  port: 5432
+                  dbname: ${MOBILITYDB_DB}
+                  user: ${MOBILITYDB_USER}
+                  password: ${MOBILITYDB_PASSWORD}
+                  search_path: [rail, public]
+              id_field: line_id
+              table: lines_crs84
+              geom_field: geom
+              title_field: name
+
+    rail-stations:
+        type: collection
+        title: Railway stations
+        description: >-
+            All named railway stations and halts in the Austria OpenStreetMap
+            extract (ODbL).
+        keywords: [railway, stations, OpenStreetMap]
+        links:
+            - type: text/html
+              rel: license
+              title: OpenStreetMap (ODbL)
+              href: https://www.openstreetmap.org/copyright
+              hreflang: en-US
+        extents:
+            spatial:
+                bbox: [9.4, 46.3, 17.2, 49.1]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+        providers:
+            - type: feature
+              name: PostgreSQL
+              data:
+                  host: mobilitydb
+                  port: 5432
+                  dbname: ${MOBILITYDB_DB}
+                  user: ${MOBILITYDB_USER}
+                  password: ${MOBILITYDB_PASSWORD}
+                  search_path: [rail, public]
+              id_field: osm_id
+              table: stations_crs84
+              geom_field: geom
+              title_field: name
+
+    stations-edr:
+        type: collection
+        title: Weather stations (EDR)
+        description: >-
+            The SensorThings API observations exposed as OGC API - EDR through
+            pygeoapi's SensorThingsEDR provider. Parameters are the STA
+            ObservedProperties. GeoSphere Austria (CC BY 4.0); soil moisture,
+            soil state and some soil temperatures are simulated.
+        keywords: [EDR, SensorThings, weather, stations]
+        links:
+            - type: text/html
+              rel: canonical
+              title: GeoSphere Austria klima-v2-10min
+              href: https://data.hub.geosphere.at/dataset/klima-v2-10min
+              hreflang: en-US
+        extents:
+            spatial:
+                bbox: [9.4, 46.3, 17.2, 49.1]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+            temporal:
+                begin: 2026-11-04T00:00:00Z
+                end: 2026-11-13T23:50:00Z
+        providers:
+            - type: edr
+              name: SensorThingsEDR
+              data: http://frost:8080/FROST-Server/v1.1/
+            - type: feature
+              name: SensorThings
+              data: http://frost:8080/FROST-Server/v1.1/
+              entity: Things
+              title_field: name
+
+    inca-grid:
+        type: collection
+        title: INCA gridded weather (EDR)
+        description: >-
+            GeoSphere Austria INCA analysis (hourly, 1 km), 2026-11-04 to
+            2026-11-13: air temperature, relative humidity and precipitation.
+            Regridded from EPSG:31287 to a regular 0.01 degree lon/lat grid
+            (bilinear). CC BY 4.0.
+        keywords: [EDR, INCA, grid, weather, GeoSphere]
+        links:
+            - type: text/html
+              rel: canonical
+              title: GeoSphere Austria INCA
+              href: https://data.hub.geosphere.at/dataset/inca-v1-1h-1km
+              hreflang: en-US
+        extents:
+            spatial:
+                bbox: [9.46, 46.45, 17.19, 49.09]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+            temporal:
+                begin: 2026-11-04T00:00:00Z
+                end: 2026-11-13T23:00:00Z
+        providers:
+            - type: edr
+              name: xarray-edr
+              data: /data/inca_crs84.nc
+              x_field: lon
+              y_field: lat
+              time_field: time
+              format:
+                  name: netcdf
+                  mimetype: application/x-netcdf

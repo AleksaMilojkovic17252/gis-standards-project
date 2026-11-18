@@ -1,0 +1,17 @@
+.env
+
+data/raw/
+data/processed/
+
+node_modules/
+web/dist/
+
+__pycache__/
+*.pyc
+.venv/
+
+.idea/
+.vscode/
+.DS_Store
+.~lock.*#
+*.log

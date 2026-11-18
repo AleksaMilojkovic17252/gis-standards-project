@@ -1,0 +1,16 @@
+model,config,query,kind,run,ms
+postgis_points,all,q5,warm,1,1639.222
+postgis_points,all,q5,warm,2,1647.679
+postgis_points,all,q5,warm,3,1643.121
+postgis_points,all,q5,warm,4,1629.88
+postgis_points,all,q5,warm,5,1643.281
+mdb,gist_trip,q5,warm,1,1464.158
+mdb,gist_trip,q5,warm,2,1471.851
+mdb,gist_trip,q5,warm,3,1498.857
+mdb,gist_trip,q5,warm,4,1478.865
+mdb,gist_trip,q5,warm,5,1483.002
+postgis_lsm,all,q5,warm,1,2115.902
+postgis_lsm,all,q5,warm,2,2121.574
+postgis_lsm,all,q5,warm,3,2120.405
+postgis_lsm,all,q5,warm,4,2130.91
+postgis_lsm,all,q5,warm,5,2123.176

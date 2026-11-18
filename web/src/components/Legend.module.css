@@ -1,0 +1,22 @@
+.legend {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.title {
+  color: var(--fg);
+  margin-bottom: 4px;
+}
+
+.bar {
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+.labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
